@@ -1,0 +1,197 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Controllers {
+  ID   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+
+  @@map("controllers")
+}
+
+model LoteContainer {
+  ID         Int      @id @default(autoincrement())
+  name       String   @unique(map: "name") @db.VarChar(100)
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  @@map("lote_container")
+}
+
+model PermissionGroups {
+  ID   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+
+  @@map("permission_groups")
+}
+
+model Permissions {
+  ID            Int      @id @default(autoincrement())
+  group_ID      Int
+  controller_ID Int
+  read          Boolean  @default(false)
+  write         Boolean  @default(false)
+  delete        Boolean  @default(false)
+  edit          Boolean? @default(false)
+
+  @@index([controller_ID], map: "controller_ID")
+  @@index([group_ID], map: "group_ID")
+  @@map("permissions")
+}
+
+model Products {
+  ID                    Int                   @id @default(autoincrement())
+  code                  String                @db.VarChar(30)
+  description           String?               @db.VarChar(255)
+  chinese_description   String?               @db.VarChar(255)
+  importer              String                @db.VarChar(30)
+  ean                   String?               @db.VarChar(13)
+  is_active             Boolean?              @default(true)
+  created_at            DateTime              @default(now()) @db.Timestamp(0)
+  giro_percentual       Float?                @db.Float
+  products_in_container ProductsInContainer[]
+  quantity_in_stock     QuantityInStock[]
+
+  @@map("products")
+}
+
+model ProductsInContainer {
+  ID                Int       @id @default(autoincrement())
+  product_ID        Int
+  container_ID      Int
+  quantity          Int       @default(0)
+  quantity_expected Int?
+  in_stock          Boolean?  @default(true)
+  departure_date    DateTime? @db.Date
+  arrival_date      DateTime? @db.Date
+  created_at        DateTime  @default(now()) @db.DateTime(0)
+  updated_at        DateTime  @default(now()) @db.Timestamp(0)
+  products          Products  @relation(fields: [product_ID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "products_in_container_ibfk_1")
+
+  @@index([container_ID], map: "container_ID")
+  @@index([product_ID], map: "product_ID")
+  @@map("products_in_container")
+}
+
+model QuantityInStock {
+  ID                  Int      @id @default(autoincrement())
+  product_ID          Int
+  stock_ID            Int
+  quantity            Int      @default(0)
+  quantity_in_reserve Int      @default(0)
+  location            String?  @db.VarChar(50)
+  last_entries        String?  @db.VarChar(255)
+  entry_quantity      Int?     @default(0)
+  products            Products @relation(fields: [product_ID], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "quantity_in_stock_ibfk_1")
+
+  @@index([product_ID], map: "product_ID")
+  @@index([stock_ID], map: "stock_ID")
+  @@map("quantity_in_stock")
+}
+
+model Reserves {
+  ID          Int      @id @default(autoincrement())
+  product_ID  Int
+  stock_ID    Int
+  quantity    Int
+  client_name String   @db.VarChar(40)
+  rescue_date DateTime @db.Date
+  observation String?  @db.Text
+  confirmed   Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.DateTime(0)
+  updated_at  DateTime @default(now()) @db.DateTime(0)
+
+  @@index([product_ID], map: "product_ID")
+  @@index([stock_ID], map: "stock_ID")
+  @@map("reserves")
+}
+
+model Stocks {
+  ID   Int    @id @default(autoincrement())
+  name String @unique(map: "name") @db.VarChar(15)
+
+  @@map("stocks")
+}
+
+model TransactionTypes {
+  ID   Int    @id @default(autoincrement())
+  type String @unique(map: "type") @db.VarChar(30)
+
+  @@map("transaction_types")
+}
+
+model Transaction {
+  ID            Int      @id @default(autoincrement())
+  product_ID    Int
+  from_stock_ID Int?
+  to_stock_ID   Int?
+  type_ID       Int
+  quantity      Int      @default(0)
+  client_name   String?  @db.VarChar(65)
+  observation   String?  @db.VarChar(155)
+  operator_ID   Int?
+  created_at    DateTime @default(now()) @db.DateTime(0)
+  updated_at    DateTime @default(now()) @db.DateTime(0)
+
+  @@index([from_stock_ID], map: "from_stock_ID")
+  @@index([operator_ID], map: "operator_ID")
+  @@index([product_ID], map: "product_ID")
+  @@index([to_stock_ID], map: "to_stock_ID")
+  @@index([type_ID], map: "type_ID")
+  @@map("transactions")
+}
+
+model TransactionHistory {
+  ID            Int      @id @default(autoincrement())
+  product_ID    Int
+  from_stock_ID Int?
+  to_stock_ID   Int?
+  type_ID       Int
+  quantity      Int      @default(0)
+  client_name   String?  @db.VarChar(65)
+  observation   String?  @db.VarChar(155)
+  operator_ID   Int?
+  created_at    DateTime @default(now()) @db.DateTime(0)
+  updated_at    DateTime @default(now()) @db.DateTime(0)
+
+  @@index([from_stock_ID], map: "from_stock_ID")
+  @@index([product_ID], map: "product_ID")
+  @@index([to_stock_ID], map: "to_stock_ID")
+  @@index([type_ID], map: "type_ID")
+  @@map("transactions_history")
+}
+
+model Transference {
+  ID            Int      @id @default(autoincrement())
+  product_ID    Int
+  from_stock_ID Int
+  to_stock_ID   Int
+  quantity      Int
+  location      String?  @db.VarChar(255)
+  observation   String?  @db.VarChar(255)
+  confirmed     Boolean? @default(false)
+  created_at    DateTime @default(now()) @db.Timestamp(0)
+  updated_at    DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([from_stock_ID], map: "from_stock_ID")
+  @@index([product_ID], map: "product_ID")
+  @@index([to_stock_ID], map: "to_stock_ID")
+  @@map("transferences")
+}
+
+model User {
+  ID       Int      @id @default(autoincrement())
+  username String   @unique(map: "username") @db.VarChar(30)
+  email    String   @unique(map: "email") @db.VarChar(255)
+  password String   @db.VarChar(255)
+  active   Boolean? @default(false)
+  group_ID Int?     @default(99)
+
+  @@index([group_ID], map: "group_ID")
+  @@map("users")
+}
