@@ -230,13 +230,13 @@ export class AppService {
       })
     ).map((p) => p.ID);
 
-    // 3. Obter a quantidade total em estoque para todos os produtos filtrados no galpão (stock_ID = 2)
+    // 3. Obter a quantidade total em estoque para todos os produtos filtrados no galpão (stock_ID = 1)
     const totalQuantityInStockResult =
       await this.prisma.quantityInStock.aggregate({
         _sum: { quantity: true },
         where: {
           product_ID: { in: filteredProductIds },
-          stock_ID: 2, // Filtra apenas para o galpão
+          stock_ID: 1, // Filtra apenas para o galpão
         },
       });
     const totalQuantityInStock = totalQuantityInStockResult._sum.quantity || 0;
@@ -258,9 +258,9 @@ export class AppService {
 
     // Continua o processamento para montar entry, containers e alerta
     for (let product of products) {
-      // Encontra o estoque específico do galpão (stock_ID = 2)
+      // Encontra o estoque específico do galpão (stock_ID = 1)
       const galpaoStock = product.quantity_in_stock.find(
-        (v) => v.stock_ID === 2,
+        (v) => v.stock_ID === 1,
       );
       const saldoAtualGalpao = galpaoStock ? galpaoStock.quantity : 0; // Garante que é 0 se não encontrado
 
@@ -349,9 +349,9 @@ export class AppService {
         },
       }),
       quantity_in_stock: {
-        // Filtra produtos que possuem estoque na loja (stock_ID = 1)
+        // Filtra produtos que possuem estoque na loja (stock_ID = 2)
         some: {
-          stock_ID: 1,
+          stock_ID: 2,
           quantity: { gt: 0 }, // Opcional: apenas produtos com quantidade > 0 na loja
         },
       },
@@ -378,13 +378,13 @@ export class AppService {
       })
     ).map((p) => p.ID);
 
-    // 3. Obter a quantidade total em estoque para todos os produtos filtrados na loja (stock_ID = 1)
+    // 3. Obter a quantidade total em estoque para todos os produtos filtrados na loja (stock_ID = 2)
     const totalQuantityInStockResult =
       await this.prisma.quantityInStock.aggregate({
         _sum: { quantity: true },
         where: {
           product_ID: { in: filteredProductIds },
-          stock_ID: 1, // Filtra apenas para a loja
+          stock_ID: 2, // Filtra apenas para a loja
         },
       });
     const totalQuantityInStock = totalQuantityInStockResult._sum.quantity || 0;
@@ -415,7 +415,7 @@ export class AppService {
           product_ID: product.ID,
           type_ID: 3, // Supondo que 3 é o type_ID para transações de loja relevantes
           from_stock_ID: 1, // Supondo que 1 é o stock_ID de origem para loja
-          to_stock_ID: 2, // Supondo que 2 é o stock_ID de destino para loja (doação para galpão?)
+          to_stock_ID: 2, // Supondo que 2 é o stock_ID de destino para loja
         },
         ...(saldoAtualLoja === 0 ? { take: 1 } : {}),
         orderBy: { ID: 'desc' },
