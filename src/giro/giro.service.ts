@@ -53,12 +53,12 @@ export class GiroService {
 
         if (saldoAtual === 0 && entradas.length === 1) {
           soma = entradas[0].quantity;
-          ids.push(entradas[0].ID);
+          ids.push(entradas[0].container_ID);
         } else {
           for (const entrada of entradas) {
-            if (soma + entrada.quantity > saldoAtual) break;
             soma += entrada.quantity;
             ids.push(entrada.container_ID);
+            if (soma + entrada.quantity > saldoAtual) break;
           }
         }
 
@@ -70,7 +70,7 @@ export class GiroService {
           } else if (saldoAtual === soma) {
             giro = 0;
           } else {
-            const diff = saldoAtual - soma;
+            const diff = soma - saldoAtual;
             giro = Number(((diff / soma) * 100).toFixed(2));
           }
         }
