@@ -47,7 +47,7 @@ export class AppService {
       ...(code && {
         code: {
           contains: code,
-          mode: 'insensitive', // Adicionado para busca case-insensitive
+          // mode: 'insensitive', // Adicionado para busca case-insensitive
         },
       }),
       ...(Object.keys(giroFilter).length > 0 && {
@@ -127,7 +127,7 @@ export class AppService {
 
       if (saldoAtualGalpao === 0 && galpaoEntries.length === 1) {
         sum = galpaoEntries[0].quantity;
-        containerIds.push(galpaoEntries[0].ID);
+        containerIds.push(galpaoEntries[0].container_ID);
       } else {
         for (let entry of galpaoEntries) {
           sum += entry.quantity;
@@ -198,7 +198,6 @@ export class AppService {
       ...(code && {
         code: {
           contains: code,
-          mode: 'insensitive',
         },
       }),
       quantity_in_stock: {
@@ -276,7 +275,7 @@ export class AppService {
 
       if (saldoAtualGalpao === 0 && galpaoEntries.length === 1) {
         sum = galpaoEntries[0].quantity;
-        containerIds.push(galpaoEntries[0].ID);
+        containerIds.push(galpaoEntries[0].container_ID);
       } else {
         for (let entry of galpaoEntries) {
           sum += entry.quantity;
@@ -347,7 +346,6 @@ export class AppService {
       ...(code && {
         code: {
           contains: code,
-          mode: 'insensitive',
         },
       }),
       quantity_in_stock: {
