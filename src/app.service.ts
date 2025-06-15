@@ -62,7 +62,7 @@ export class AppService {
       const prismaOrderByField = orderBy === 'codigo' ? 'code' : orderBy;
       orderByClause[prismaOrderByField] = orderType.toLowerCase();
     } else {
-      orderByClause.ID = 'desc'; // Padrão se nenhum for fornecido
+      orderByClause.code = 'asc'; // Padrão se nenhum for fornecido
     }
 
     // 1. Obter a contagem total de produtos que correspondem aos filtros
@@ -148,7 +148,7 @@ export class AppService {
       };
 
       // @ts-ignore
-      product.alerta = Math.ceil(sum / alerta);
+      product.alerta = Math.ceil((alerta / 100) * sum);
 
       // @ts-ignore
       product.daysInStock = (() => {
@@ -214,7 +214,7 @@ export class AppService {
       const prismaOrderByField = orderBy === 'codigo' ? 'code' : orderBy;
       orderByClause[prismaOrderByField] = orderType.toLowerCase();
     } else {
-      orderByClause.ID = 'desc';
+      orderByClause.code = 'asc';
     }
 
     // 1. Obter a contagem total de produtos que correspondem aos filtros para o galpão
@@ -362,7 +362,7 @@ export class AppService {
       const prismaOrderByField = orderBy === 'codigo' ? 'code' : orderBy;
       orderByClause[prismaOrderByField] = orderType.toLowerCase();
     } else {
-      orderByClause.ID = 'desc';
+      orderByClause.code = 'asc';
     }
 
     // 1. Obter a contagem total de produtos que correspondem aos filtros para a loja
