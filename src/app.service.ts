@@ -462,4 +462,92 @@ export class AppService {
       totalQuantityInStock: totalQuantityInStock,
     };
   }
+
+async getProductsNotSelled({
+    page,
+    limit,
+    importer,
+    code,
+    orderBy,
+    orderType,
+  }: {
+    code?: string;
+    importer?: string;
+  } & Pageable) {
+    if (!page) page = 1;
+    if (!limit) limit = 20;
+
+    const whereClause: any = {
+      is_active: true,
+      ...(importer && {
+        importer: importer,
+      }),
+      ...(code && {
+        code: {
+          contains: code,
+          mode: 'insensitive',
+        },
+      }),
+    };
+
+    const orderByClause: any = {};
+    if (orderBy && orderType) {
+      const prismaOrderByField = orderBy === 'codigo' ? 'code' : orderBy;
+      orderByClause[prismaOrderByField] = orderType.toLowerCase();
+    } else {
+      orderByClause.ID = 'desc'; // Ordem padrão se não especificado
+    }
+
+    // 1. Buscar todos os produtos que correspondem aos filtros básicos.
+    // Incluir dados relacionados necessários para o cálculo de "não vendido":
+    // - quantity_in_stock para a quantidade atual no Galpão (stock_ID = 1)
+    // - productsInContainer para obter a ÚLTIMA entrada do produto
+    const allFilteredProducts = await this.prisma.products.findMany({
+      where: whereClause,
+      orderBy: orderByClause, // Aplicar ordenação aqui para que o `take: 1` seja consistente
+      include: {
+        quantity_in_stock: {
+          where: { stock_ID: 1 }, // Apenas interessado no estoque do Galpão (ID 1)
+          select: { quantity: true },
+        },
+        products_in_container: {
+          orderBy: { ID: 'desc' }, // Ordenar por ID descendente para pegar a última entrada
+          take: 1, // Pegar apenas a última entrada
+          // Selecionar campos necessários para o retorno (entry, daysInStock)
+          select: { quantity: true, ID: true, container_ID: true, created_at: true, updated_at: true },
+        },
+      },
+    });
+
+    // 2. Filtrar manualmente os produtos com base na condição "não vendido"
+    const notSelledProducts = allFilteredProducts.filter((product) => {
+      const currentGalpaoQuantity = product.quantity_in_stock.reduce(
+        (sum, stock) => sum + stock.quantity,
+        0,
+      );
+      const lastProductInContainerEntry = product.products_in_container[0]; // Obter a última entrada
+
+      // Um produto é "não vendido" se ele tem uma última entrada E
+      // sua quantidade atual no Galpão é MAIOR OU IGUAL à quantidade da sua última entrada.
+      return (
+        lastProductInContainerEntry &&
+        currentGalpaoQuantity >= lastProductInContainerEntry.quantity
+      );
+    });
+
+    // 3. Calcular totalCount e pageCount a partir da lista filtrada
+    const totalCount = notSelledProducts.length;
+    const pageCount = Math.ceil(totalCount / limit);
+
+    // 4. Aplicar paginação à lista filtrada e ordenada (agora definida!)
+    const startIndex = limit * (page - 1);
+    const paginatedProducts = notSelledProducts.slice(startIndex, startIndex + limit);
+
+    return {
+      products: paginatedProducts,
+      totalCount: totalCount,
+      pageCount: pageCount,
+      totalQuantityInStock: 0, // Definido como 0, pois não é mais necessário calcular o total de caixas para esta função.
+    };
+  }
 }
