@@ -15,7 +15,7 @@ export class GiroService {
     return !this.updating;
   }
 
-  @Cron('0 3 * * *')
+  @Cron('*/10 * * * *') 
   async atualizarGiroEmLotes() {
     this.updating = true;
 
