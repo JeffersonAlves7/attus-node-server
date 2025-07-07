@@ -61,6 +61,34 @@ export class AppController {
     });
   }
 
+  @Get('products/notselled')
+  productsNotSelled(
+    @Query('page', {
+      transform(value) {
+        if (!value) return 1;
+        return Number(value);
+      },
+    })
+    page: number,
+
+    @Query('limit', {
+      transform(value) {
+        if (!value) return 20;
+        return Math.min(Number(value), 100);
+      },
+    })
+    limit: number,
+    @Query('importer') importer?: string,
+    @Query('code') code?: string,
+  ) {
+    return this.appService.getProductsNotSelled({
+      page,
+      limit,
+      code,
+      importer,
+    });
+  }
+
   @Get('products/:stock')
   productsByStock(
     @Param('stock', {
@@ -115,33 +143,5 @@ export class AppController {
         importer: importer,
       });
     }
-  }
-
-  @Get('products/notselled')
-  productsNotSelled(
-    @Query('page', {
-      transform(value) {
-        if (!value) return 1;
-        return Number(value);
-      },
-    })
-    page: number,
-
-    @Query('limit', {
-      transform(value) {
-        if (!value) return 20;
-        return Math.min(Number(value), 100);
-      },
-    })
-    limit: number,
-    @Query('importer') importer?: string,
-    @Query('code') code?: string,
-  ) {
-    return this.appService.getProductsNotSelled({
-      page,
-      limit,
-      code,
-      importer,
-    });
   }
 }
