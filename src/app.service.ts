@@ -463,7 +463,7 @@ export class AppService {
     };
   }
 
-async getProductsNotSelled({
+  async getProductsNotSelled({
     page,
     limit,
     importer,
@@ -485,7 +485,6 @@ async getProductsNotSelled({
       ...(code && {
         code: {
           contains: code,
-          mode: 'insensitive',
         },
       }),
     };
@@ -507,31 +506,39 @@ async getProductsNotSelled({
       orderBy: orderByClause, // Aplicar ordenação aqui para que o `take: 1` seja consistente
       include: {
         quantity_in_stock: {
-          where: { stock_ID: 1 }, // Apenas interessado no estoque do Galpão (ID 1)
+          where: { stock_ID: 1 },
           select: { quantity: true },
         },
         products_in_container: {
-          orderBy: { ID: 'desc' }, // Ordenar por ID descendente para pegar a última entrada
-          take: 1, // Pegar apenas a última entrada
-          // Selecionar campos necessários para o retorno (entry, daysInStock)
-          select: { quantity: true, ID: true, container_ID: true, created_at: true, updated_at: true },
+          orderBy: { ID: 'desc' },
+          take: 1,
+          select: {
+            quantity: true,
+            ID: true,
+            container_ID: true,
+            created_at: true,
+            updated_at: true,
+          },
         },
       },
     });
 
-    // 2. Filtrar manualmente os produtos com base na condição "não vendido"
     const notSelledProducts = allFilteredProducts.filter((product) => {
       const currentGalpaoQuantity = product.quantity_in_stock.reduce(
         (sum, stock) => sum + stock.quantity,
         0,
       );
+
       const lastProductInContainerEntry = product.products_in_container[0]; // Obter a última entrada
 
       // Um produto é "não vendido" se ele tem uma última entrada E
-      // sua quantidade atual no Galpão é MAIOR OU IGUAL à quantidade da sua última entrada.
+      // sua quantidade atual no Galpão é MAIOR OU IGUAL à quantidade da sua última entrada E
+      // a quantidade atual no Galpão é POSITIVA.
       return (
         lastProductInContainerEntry &&
-        currentGalpaoQuantity >= lastProductInContainerEntry.quantity
+        lastProductInContainerEntry.quantity > 0 &&
+        currentGalpaoQuantity == lastProductInContainerEntry.quantity &&
+        currentGalpaoQuantity > 0 // Adicionada esta condição para garantir quantidade positiva
       );
     });
 
@@ -541,7 +548,10 @@ async getProductsNotSelled({
 
     // 4. Aplicar paginação à lista filtrada e ordenada (agora definida!)
     const startIndex = limit * (page - 1);
-    const paginatedProducts = notSelledProducts.slice(startIndex, startIndex + limit);
+    const paginatedProducts = notSelledProducts.slice(
+      startIndex,
+      startIndex + limit,
+    );
 
     return {
       products: paginatedProducts,
