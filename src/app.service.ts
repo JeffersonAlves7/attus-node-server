@@ -510,6 +510,7 @@ export class AppService {
           select: { quantity: true },
         },
         products_in_container: {
+          // Alterado para productsInContainer (camelCase) conforme a definição do Prisma
           orderBy: { ID: 'desc' },
           take: 1,
           select: {
@@ -532,13 +533,14 @@ export class AppService {
       const lastProductInContainerEntry = product.products_in_container[0]; // Obter a última entrada
 
       // Um produto é "não vendido" se ele tem uma última entrada E
-      // sua quantidade atual no Galpão é MAIOR OU IGUAL à quantidade da sua última entrada E
+      // a quantidade da última entrada é positiva E
+      // sua quantidade atual no Galpão é IGUAL à quantidade da sua última entrada E
       // a quantidade atual no Galpão é POSITIVA.
       return (
         lastProductInContainerEntry &&
         lastProductInContainerEntry.quantity > 0 &&
-        currentGalpaoQuantity == lastProductInContainerEntry.quantity &&
-        currentGalpaoQuantity > 0 // Adicionada esta condição para garantir quantidade positiva
+        currentGalpaoQuantity === lastProductInContainerEntry.quantity && // Usando '===' para igualdade estrita
+        currentGalpaoQuantity > 0
       );
     });
 
@@ -553,11 +555,34 @@ export class AppService {
       startIndex + limit,
     );
 
+    // Calcular o totalQuantityInStock somando as quantidades dos produtos paginados
+    const totalQuantityInStock = paginatedProducts.reduce((sum, product) => {
+      const quantityInStock = product.quantity_in_stock.reduce(
+        (subSum, stock) => subSum + stock.quantity,
+        0,
+      );
+      return sum + quantityInStock;
+    }, 0);
+
+    // NOVO: Calcular o total de itens (produtos) armazenados no galpão sem considerar os filtros
+    const totalProductsInGalpaoUnfiltered = await this.prisma.products.count({
+      where: {
+        is_active: true,
+        quantity_in_stock: {
+          some: {
+            stock_ID: 1, // Apenas produtos no galpão
+            // quantity: { gt: 0 }, // Com quantidade positiva
+          },
+        },
+      },
+    });
+
     return {
       products: paginatedProducts,
       totalCount: totalCount,
       pageCount: pageCount,
-      totalQuantityInStock: 0, // Definido como 0, pois não é mais necessário calcular o total de caixas para esta função.
+      totalQuantityInStock: totalQuantityInStock, // Agora calculado
+      totalProductsInGalpaoUnfiltered: totalProductsInGalpaoUnfiltered, // NOVO: Total de produtos no galpão sem filtro
     };
   }
 }
