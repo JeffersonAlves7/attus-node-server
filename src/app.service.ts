@@ -341,8 +341,28 @@ export class AppService {
     if (!limit) limit = 20;
     if (!alerta) alerta = 20;
 
+    const transferencesProductsIds = await this.prisma.transaction
+      .findMany({
+        where: {
+          to_stock_ID: 2,
+          type_ID: 3,
+        },
+        select: {
+          ID: true,
+          product_ID: true,
+          to_stock_ID: true,
+          type_ID: true,
+        },
+      })
+      .then((transactions) =>
+        transactions.map((transaction) => transaction.product_ID),
+      );
+
     const whereClause: any = {
       is_active: true,
+      ID: {
+        in: transferencesProductsIds,
+      },
       ...(importer && {
         importer: importer,
       }),
