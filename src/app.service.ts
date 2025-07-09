@@ -53,6 +53,11 @@ export class AppService {
       ...(Object.keys(giroFilter).length > 0 && {
         giro_percentual: giroFilter,
       }),
+      products_in_container: {
+        some: {
+          in_stock: true,
+        },
+      },
     };
 
     // Construindo a cláusula de ordenação dinamicamente
@@ -117,7 +122,7 @@ export class AppService {
       const saldoAtualGalpao = galpaoStock.quantity;
 
       const galpaoEntries = await this.prisma.productsInContainer.findMany({
-        where: { product_ID: product.ID },
+        where: { product_ID: product.ID, in_stock: true },
         ...(saldoAtualGalpao === 0 ? { take: 1 } : {}),
         orderBy: { ID: 'desc' },
       });
@@ -200,11 +205,9 @@ export class AppService {
           contains: code,
         },
       }),
-      quantity_in_stock: {
-        // Filtra produtos que possuem estoque no galpão (stock_ID = 2)
+      products_in_container: {
         some: {
-          stock_ID: 2,
-          quantity: { gt: 0 }, // Opcional: apenas produtos com quantidade > 0 no galpão
+          in_stock: true,
         },
       },
     };
@@ -265,7 +268,7 @@ export class AppService {
       const saldoAtualGalpao = galpaoStock ? galpaoStock.quantity : 0; // Garante que é 0 se não encontrado
 
       const galpaoEntries = await this.prisma.productsInContainer.findMany({
-        where: { product_ID: product.ID },
+        where: { product_ID: product.ID, in_stock: true },
         ...(saldoAtualGalpao === 0 ? { take: 1 } : {}),
         orderBy: { ID: 'desc' },
       });
@@ -348,11 +351,9 @@ export class AppService {
           contains: code,
         },
       }),
-      quantity_in_stock: {
-        // Filtra produtos que possuem estoque na loja (stock_ID = 2)
+      products_in_container: {
         some: {
-          stock_ID: 2,
-          quantity: { gt: 0 }, // Opcional: apenas produtos com quantidade > 0 na loja
+          in_stock: true,
         },
       },
     };
