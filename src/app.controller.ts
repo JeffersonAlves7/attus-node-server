@@ -144,4 +144,37 @@ export class AppController {
       });
     }
   }
+
+  @Get('product/:id/sales')
+  productSales(
+    @Param('id')
+    id: string,
+
+    @Query('startDate', {
+      transform(value) {
+        if (value) return value;
+        // Retorna a data atual no formato YYYY-MM-DD
+        const date = new Date();
+        return date.toISOString().split('T')[0];
+      },
+    })
+    startDate: string,
+
+    @Query('endDate', {
+      transform(value) {
+        if (value) return value;
+        // Retorna a data de amanhã no formato YYYY-MM-DD
+        const date = new Date();
+        date.setDate(date.getDate() + 1); // Adiciona 1 dia
+        return date.toISOString().split('T')[0];
+      },
+    })
+    endDate: string,
+  ) {
+    return this.appService.getProductSales(
+      Number.parseInt(id),
+      startDate,
+      endDate,
+    );
+  }
 }

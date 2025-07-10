@@ -606,4 +606,56 @@ export class AppService {
       totalProductsInGalpaoUnfiltered: totalProductsInGalpaoUnfiltered, // NOVO: Total de produtos no galpão sem filtro
     };
   }
+
+  async getProductSales(
+    productID: number,
+    startDate: string,
+    endDate: string,
+  ): Promise<{ 1: number; 2: number }> {
+    if (typeof productID !== 'number' || productID <= 0) {
+      console.error('Invalid product ID provided to getProductSales.');
+      return { 1: 0, 2: 0 };
+    }
+
+    const product = await this.prisma.products.findUnique({
+      where: {
+        ID: productID,
+      },
+    });
+
+    if (!product) return { 1: 0, 2: 0 };
+
+    const startOfDay = new Date(startDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(endDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const sales = await this.prisma.transaction.findMany({
+      where: {
+        product_ID: product.ID,
+        type_ID: 2,
+        created_at: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+
+      select: {
+        quantity: true,
+        from_stock_ID: true,
+      },
+    });
+
+    return sales.reduce<{ 1: number; 2: number }>(
+      (previous, current) => {
+        if (current.from_stock_ID === 1 || current.from_stock_ID === 2) {
+          previous[current.from_stock_ID] += current.quantity;
+        }
+
+        return previous;
+      },
+      { 1: 0, 2: 0 },
+    );
+  }
 }
