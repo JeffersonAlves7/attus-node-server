@@ -11,7 +11,7 @@ interface Pageable {
 
 @Injectable()
 export class AppService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getProductsWithDaysAndGiro({
     page,
@@ -47,7 +47,6 @@ export class AppService {
       ...(code && {
         code: {
           contains: code,
-          // mode: 'insensitive', // Adicionado para busca case-insensitive
         },
       }),
       ...(Object.keys(giroFilter).length > 0 && {
@@ -75,6 +74,58 @@ export class AppService {
       where: whereClause,
     });
 
+    // 2. Obter a soma das quantidades de estoque por produto
+    const stockSums = await this.prisma.quantityInStock.groupBy({
+      by: ['product_ID'],
+      _sum: {
+        quantity: true, // Soma das quantidades de estoque
+      },
+      where: {
+        product_ID: {
+          in: (
+            await this.prisma.products.findMany({
+              where: whereClause,
+              select: { ID: true },
+            })
+          ).map((p) => p.ID),
+        },
+      },
+    });
+
+    // 3. Criar um mapa das somas de estoque por product_ID
+    const stockMap = new Map<number, number>();
+    stockSums.forEach((item) => {
+      stockMap.set(item.product_ID, item._sum.quantity || 0); // Adiciona a soma do estoque
+    });
+
+    // 4. Obter os IDs dos produtos ordenados pela soma de estoque
+    const sortedStock = stockSums.sort((a, b) => {
+      const stockA = a._sum.quantity || 0;
+      const stockB = b._sum.quantity || 0;
+      return orderType === 'asc' ? stockA - stockB : stockB - stockA;
+    });
+
+    // 5. Pegando os IDs dos produtos com base na ordenação
+    const ids = sortedStock.slice(limit * (page - 1), limit * page).map((item) => item.product_ID);
+
+    // 6. Obter os produtos com a ordenação pela soma do estoque
+    const products = await this.prisma.products.findMany({
+      where: {
+        ID: {
+          in: ids,
+        },
+      },
+      orderBy: orderByClause, // Usa a cláusula de ordenação dinâmica
+      include: {
+        quantity_in_stock: {
+          orderBy: {
+            ID: 'desc',
+          },
+        },
+      },
+    });
+
+    // 7. Obter a quantidade total em estoque para todos os produtos filtrados
     // 2. Obter os IDs de todos os produtos filtrados para somar o estoque total
     const filteredProductIds = (
       await this.prisma.products.findMany({
@@ -93,22 +144,7 @@ export class AppService {
       });
     const totalQuantityInStock = totalQuantityInStockResult._sum.quantity || 0;
 
-    // Pega produtos já filtrados e paginados
-    const products = await this.prisma.products.findMany({
-      where: whereClause,
-      orderBy: orderByClause, // Usa a cláusula de ordenação dinâmica
-      include: {
-        quantity_in_stock: {
-          orderBy: {
-            ID: 'desc',
-          },
-        },
-      },
-      skip: limit * (page - 1),
-      take: limit,
-    });
-
-    // Continua o processamento para montar entry, containers e alerta
+    // 8. Continua o processamento para montar entry, containers e alerta
     for (let product of products) {
       const galpaoStock = product.quantity_in_stock.reduce(
         (prev, current) => ({
@@ -171,12 +207,14 @@ export class AppService {
     }
 
     return {
-      products: products,
-      totalCount: totalCount,
+      products,
+      totalCount,
       pageCount: Math.ceil(totalCount / limit),
-      totalQuantityInStock: totalQuantityInStock,
+      totalQuantityInStock,
     };
   }
+
+
 
   async getProductsWithDaysGalpao({
     page,
@@ -220,12 +258,12 @@ export class AppService {
       orderByClause.code = 'asc';
     }
 
-    // 1. Obter a contagem total de produtos que correspondem aos filtros para o galpão
+    // 1. Obter a contagem total de produtos que correspondem aos filtros
     const totalCount = await this.prisma.products.count({
       where: whereClause,
     });
 
-    // 2. Obter os IDs de todos os produtos filtrados para somar o estoque total do galpão
+    // 2. Obter os IDs de todos os produtos filtrados para somar o estoque total do galpão (stock_ID = 1)
     const filteredProductIds = (
       await this.prisma.products.findMany({
         where: whereClause,
@@ -233,21 +271,52 @@ export class AppService {
       })
     ).map((p) => p.ID);
 
-    // 3. Obter a quantidade total em estoque para todos os produtos filtrados no galpão (stock_ID = 1)
-    const totalQuantityInStockResult =
-      await this.prisma.quantityInStock.aggregate({
-        _sum: { quantity: true },
-        where: {
-          product_ID: { in: filteredProductIds },
-          stock_ID: 1, // Filtra apenas para o galpão
-        },
-      });
-    const totalQuantityInStock = totalQuantityInStockResult._sum.quantity || 0;
+    // 3. Obter a soma das quantidades de estoque para todos os produtos filtrados no galpão (stock_ID = 1)
+    const stockSums = await this.prisma.quantityInStock.groupBy({
+      by: ['product_ID'],
+      _sum: {
+        quantity: true, // Soma das quantidades de estoque
+      },
+      where: {
+        product_ID: { in: filteredProductIds },
+        stock_ID: 1, // Filtra apenas para o galpão
+      },
+    });
 
-    // Pega produtos já filtrados e paginados
+    // 4. Criar um mapa das somas de estoque por product_ID
+    const stockMap = new Map<number, number>();
+    let totalQuantityInStock = 0; // Initialize the total quantity of stock
+
+    stockSums.forEach((item) => {
+      const quantity = item._sum.quantity || 0;
+      stockMap.set(item.product_ID, quantity); // Adiciona a soma do estoque
+      totalQuantityInStock += quantity; // Add to the total quantity in stock
+    });
+
+    // Ordenar produto com estoque somado do menor para o maior (ou maior para menor, dependendo do orderType)
+    const sortedStock = stockSums.sort((a, b) => {
+      const stockA = a._sum.quantity || 0;
+      const stockB = b._sum.quantity || 0;
+
+      // Se o orderType for 'asc', queremos o estoque menor primeiro (menor para maior)
+      if (orderType === 'asc') {
+        return stockA - stockB; // A ordenação é feita de menor para maior
+      } else {
+        return stockB - stockA; // Caso contrário, maior para menor
+      }
+    });
+
+    // 5. Pegando os IDs dos produtos com base na ordenação do estoque
+    const ids = sortedStock.slice(limit * (page - 1), limit * page).map((item) => item.product_ID);
+
+    // 6. Obter os produtos já filtrados e paginados, agora ordenados pela quantidade em estoque
     const products = await this.prisma.products.findMany({
-      where: whereClause,
-      orderBy: orderByClause,
+      where: {
+        ID: {
+          in: ids,
+        },
+      },
+      orderBy: orderByClause, // Usa a cláusula de ordenação
       include: {
         quantity_in_stock: {
           orderBy: {
@@ -255,11 +324,9 @@ export class AppService {
           },
         },
       },
-      skip: limit * (page - 1),
-      take: limit,
     });
 
-    // Continua o processamento para montar entry, containers e alerta
+    // 7. Continua o processamento para montar entry, containers e alerta
     for (let product of products) {
       // Encontra o estoque específico do galpão (stock_ID = 1)
       const galpaoStock = product.quantity_in_stock.find(
@@ -324,6 +391,7 @@ export class AppService {
     };
   }
 
+
   async getProductsWithDaysLoja({
     page,
     limit,
@@ -341,6 +409,7 @@ export class AppService {
     if (!limit) limit = 20;
     if (!alerta) alerta = 20;
 
+    // 1. Obter os IDs dos produtos transferidos para a loja (stock_ID = 2)
     const transferencesProductsIds = await this.prisma.transaction
       .findMany({
         where: {
@@ -348,16 +417,12 @@ export class AppService {
           type_ID: 3,
         },
         select: {
-          ID: true,
           product_ID: true,
-          to_stock_ID: true,
-          type_ID: true,
         },
       })
-      .then((transactions) =>
-        transactions.map((transaction) => transaction.product_ID),
-      );
+      .then((transactions) => transactions.map((transaction) => transaction.product_ID));
 
+    // 2. Definir o filtro de busca para os produtos da loja
     const whereClause: any = {
       is_active: true,
       ID: {
@@ -378,6 +443,7 @@ export class AppService {
       },
     };
 
+    // 3. Construir a cláusula de ordenação dinamicamente
     const orderByClause: any = {};
     if (orderBy && orderType) {
       const prismaOrderByField = orderBy === 'codigo' ? 'code' : orderBy;
@@ -386,12 +452,12 @@ export class AppService {
       orderByClause.code = 'asc';
     }
 
-    // 1. Obter a contagem total de produtos que correspondem aos filtros para a loja
+    // 4. Obter a contagem total de produtos que correspondem aos filtros para a loja
     const totalCount = await this.prisma.products.count({
       where: whereClause,
     });
 
-    // 2. Obter os IDs de todos os produtos filtrados para somar o estoque total da loja
+    // 5. Obter os IDs de todos os produtos filtrados para somar o estoque total da loja (stock_ID = 2)
     const filteredProductIds = (
       await this.prisma.products.findMany({
         where: whereClause,
@@ -399,21 +465,52 @@ export class AppService {
       })
     ).map((p) => p.ID);
 
-    // 3. Obter a quantidade total em estoque para todos os produtos filtrados na loja (stock_ID = 2)
-    const totalQuantityInStockResult =
-      await this.prisma.quantityInStock.aggregate({
-        _sum: { quantity: true },
-        where: {
-          product_ID: { in: filteredProductIds },
-          stock_ID: 2, // Filtra apenas para a loja
-        },
-      });
-    const totalQuantityInStock = totalQuantityInStockResult._sum.quantity || 0;
+    // 6. Obter a soma das quantidades de estoque para todos os produtos filtrados na loja (stock_ID = 2)
+    const stockSums = await this.prisma.quantityInStock.groupBy({
+      by: ['product_ID'],
+      _sum: {
+        quantity: true,
+      },
+      where: {
+        product_ID: { in: filteredProductIds },
+        stock_ID: 2, // Filtra apenas para a loja
+      },
+    });
 
-    // Pega produtos já filtrados e paginados
+    // 7. Criar um mapa das somas de estoque por product_ID
+    const stockMap = new Map<number, number>();
+    let totalQuantityInStock = 0;
+
+    stockSums.forEach((item) => {
+      const quantity = item._sum.quantity || 0;
+      stockMap.set(item.product_ID, quantity);
+      totalQuantityInStock += quantity; // Somando as quantidades totais
+    });
+
+    // 8. Ordenar os produtos pelo estoque da loja
+    const sortedStock = stockSums.sort((a, b) => {
+      const stockA = a._sum.quantity || 0;
+      const stockB = b._sum.quantity || 0;
+
+      // Ordenação crescente ou decrescente com base no orderType
+      if (orderType === 'asc') {
+        return stockA - stockB;
+      } else {
+        return stockB - stockA;
+      }
+    });
+
+    // 9. Pegar os produtos com base na ordenação do estoque
+    const ids = sortedStock.slice(limit * (page - 1), limit * page).map((item) => item.product_ID);
+
+    // 10. Obter os produtos filtrados e paginados, agora ordenados pela quantidade em estoque
     const products = await this.prisma.products.findMany({
-      where: whereClause,
-      orderBy: orderByClause,
+      where: {
+        ID: {
+          in: ids,
+        },
+      },
+      orderBy: orderByClause, // Usa a cláusula de ordenação
       include: {
         quantity_in_stock: {
           orderBy: {
@@ -421,22 +518,21 @@ export class AppService {
           },
         },
       },
-      skip: limit * (page - 1),
-      take: limit,
     });
 
-    // Continua o processamento para montar entry, containers e alerta
+    // 11. Processar produtos para adicionar entradas, containers e alertas
     for (let product of products) {
-      // Encontra o estoque específico da loja (stock_ID = 1)
-      const lojaStock = product.quantity_in_stock.find((v) => v.stock_ID === 1);
+      // Encontra o estoque específico da loja (stock_ID = 2)
+      const lojaStock = product.quantity_in_stock.find((v) => v.stock_ID === 2);
       const saldoAtualLoja = lojaStock ? lojaStock.quantity : 0; // Garante que é 0 se não encontrado
 
+      // Obter as transações de entrada de loja (do estoque 1 para o estoque 2)
       const lojaEntries = await this.prisma.transaction.findMany({
         where: {
           product_ID: product.ID,
-          type_ID: 3, // Supondo que 3 é o type_ID para transações de loja relevantes
-          from_stock_ID: 1, // Supondo que 1 é o stock_ID de origem para loja
-          to_stock_ID: 2, // Supondo que 2 é o stock_ID de destino para loja
+          type_ID: 3, // Tipo de transação para a loja
+          from_stock_ID: 1, // Estoque de origem
+          to_stock_ID: 2, // Estoque de destino (loja)
         },
         ...(saldoAtualLoja === 0 ? { take: 1 } : {}),
         orderBy: { ID: 'desc' },
@@ -444,6 +540,7 @@ export class AppService {
 
       let sum = 0;
 
+      // Calcular a quantidade de entradas na loja
       if (saldoAtualLoja === 0 && lojaEntries.length === 1) {
         sum = lojaEntries[0].quantity;
       } else {
@@ -476,13 +573,15 @@ export class AppService {
       })();
     }
 
+    // 12. Retornar os produtos, a contagem total, e o estoque total da loja
     return {
       products: products,
       totalCount: totalCount,
       pageCount: Math.ceil(totalCount / limit),
-      totalQuantityInStock: totalQuantityInStock,
+      totalQuantityInStock: totalQuantityInStock, // Retorna o total de estoque da loja
     };
   }
+
 
   async getProductsNotSelled({
     page,

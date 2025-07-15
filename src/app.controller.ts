@@ -3,7 +3,7 @@ import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) { }
 
   @Get('products')
   products(
@@ -49,6 +49,8 @@ export class AppController {
       },
     })
     giroMax?: number,
+
+    @Query("orderType") orderType?: string
   ) {
     return this.appService.getProductsWithDaysAndGiro({
       page,
@@ -58,6 +60,7 @@ export class AppController {
       alerta,
       giroMin,
       giroMax,
+      orderType: orderType && orderType == "desc" || orderType == "asc" ? orderType : "desc"
     });
   }
 
@@ -124,6 +127,7 @@ export class AppController {
 
     @Query('importer') importer?: string,
     @Query('code') code?: string,
+    @Query("orderType") orderType?: string
   ) {
     if (stock == '1' || stock == 'galpao') {
       return this.appService.getProductsWithDaysGalpao({
@@ -132,6 +136,7 @@ export class AppController {
         page: page,
         code: code,
         importer: importer,
+        orderType: orderType && orderType == "desc" || orderType == "asc" ? orderType : "desc"
       });
     }
     if (stock == '2' || stock == 'loja') {
@@ -141,6 +146,7 @@ export class AppController {
         page: page,
         code: code,
         importer: importer,
+        orderType: orderType && orderType == "desc" || orderType == "asc" ? orderType : "desc"
       });
     }
   }
