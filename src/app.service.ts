@@ -157,28 +157,28 @@ export class AppService {
 
       const saldoAtualGalpao = galpaoStock.quantity;
 
-      const galpaoEntries = await this.prisma.productsInContainer.findMany({
+      let galpaoEntries = await this.prisma.productsInContainer.findMany({
         where: { product_ID: product.ID, in_stock: true },
         ...(saldoAtualGalpao === 0 ? { take: 1 } : {}),
         orderBy: { ID: 'desc' },
       });
 
       let sum = 0;
-      let containerIds: number[] = [];
+      let realEntries: Array<{ ID: number, container_ID: number, updated_at: Date, created_at: Date }> = []
 
       if (saldoAtualGalpao === 0 && galpaoEntries.length === 1) {
         sum = galpaoEntries[0].quantity;
-        containerIds.push(galpaoEntries[0].container_ID);
+        realEntries.push(galpaoEntries[0]);
       } else {
         for (let entry of galpaoEntries) {
           sum += entry.quantity;
-          containerIds.push(entry.container_ID);
+          realEntries.push(entry);
           if (sum > saldoAtualGalpao) break;
         }
       }
 
       const containerNames = await this.prisma.loteContainer.findMany({
-        where: { ID: { in: containerIds } },
+        where: { ID: { in: realEntries.map(v => v.container_ID) } },
         select: { name: true },
       });
 
@@ -192,18 +192,22 @@ export class AppService {
       product.alerta = Math.ceil((alerta / 100) * sum);
 
       // @ts-ignore
-      product.daysInStock = (() => {
-        if (galpaoEntries.length > 0) {
-          const lastEntry = galpaoEntries[galpaoEntries.length - 1];
-          const timestamp = new Date(
-            lastEntry.updated_at ? lastEntry.updated_at : lastEntry.created_at,
-          ).valueOf();
+      product.entryDate = null
 
-          const now = Date.now();
-          return Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
-        }
-        return 0;
-      })();
+      // @ts-ignore
+      product.daysInStock = 0
+      if (realEntries.length > 0) {
+        const lastEntry = realEntries[0]
+        // @ts-ignore
+        product.entryDate = new Date(lastEntry.updated_at)
+
+        // @ts-ignore
+        const timestamp = product.entryDate.valueOf();
+
+        const now = Date.now();
+        // @ts-ignore
+        product.daysInStock = Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
+      }
     }
 
     return {
@@ -341,23 +345,23 @@ export class AppService {
       });
 
       let sum = 0;
-      let containerIds: number[] = [];
+      let realEntries: Array<{ ID: number, container_ID: number, updated_at: Date, created_at: Date }> = []
 
       if (saldoAtualGalpao === 0 && galpaoEntries.length === 1) {
         sum = galpaoEntries[0].quantity;
-        containerIds.push(galpaoEntries[0].container_ID);
+        realEntries.push(galpaoEntries[0]);
       } else {
         for (let entry of galpaoEntries) {
           sum += entry.quantity;
-          containerIds.push(entry.container_ID);
+          realEntries.push(entry);
           if (sum > saldoAtualGalpao) break;
         }
       }
-
       const containerNames = await this.prisma.loteContainer.findMany({
-        where: { ID: { in: containerIds } },
+        where: { ID: { in: realEntries.map(v => v.container_ID) } },
         select: { name: true },
       });
+
 
       // @ts-ignore
       product.entry = {
@@ -369,18 +373,22 @@ export class AppService {
       product.alerta = Math.ceil(sum / alerta);
 
       // @ts-ignore
-      product.daysInStock = (() => {
-        if (galpaoEntries.length > 0) {
-          const lastEntry = galpaoEntries[galpaoEntries.length - 1];
-          const timestamp = new Date(
-            lastEntry.updated_at ? lastEntry.updated_at : lastEntry.created_at,
-          ).valueOf();
+      product.entryDate = null
 
-          const now = Date.now();
-          return Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
-        }
-        return 0;
-      })();
+      // @ts-ignore
+      product.daysInStock = 0
+      if (realEntries.length > 0) {
+        const lastEntry = realEntries[0]
+        // @ts-ignore
+        product.entryDate = new Date(lastEntry.updated_at)
+
+        // @ts-ignore
+        const timestamp = product.entryDate.valueOf();
+
+        const now = Date.now();
+        // @ts-ignore
+        product.daysInStock = Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
+      }
     }
 
     return {
@@ -539,13 +547,16 @@ export class AppService {
       });
 
       let sum = 0;
+      let realEntries: Array<{ ID: number, updated_at: Date, created_at: Date }> = []
 
       // Calcular a quantidade de entradas na loja
       if (saldoAtualLoja === 0 && lojaEntries.length === 1) {
         sum = lojaEntries[0].quantity;
+        realEntries.push(lojaEntries[0]);
       } else {
         for (let entry of lojaEntries) {
           sum += entry.quantity;
+          realEntries.push(entry);
           if (sum > saldoAtualLoja) break;
         }
       }
@@ -559,18 +570,22 @@ export class AppService {
       product.alerta = Math.ceil(sum / alerta);
 
       // @ts-ignore
-      product.daysInStock = (() => {
-        if (lojaEntries.length > 0) {
-          const lastEntry = lojaEntries[lojaEntries.length - 1];
-          const timestamp = new Date(
-            lastEntry.updated_at ? lastEntry.updated_at : lastEntry.created_at,
-          ).valueOf();
+      product.entryDate = null
 
-          const now = Date.now();
-          return Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
-        }
-        return 0;
-      })();
+      // @ts-ignore
+      product.daysInStock = 0
+      if (realEntries.length > 0) {
+        const lastEntry = realEntries[0]
+        // @ts-ignore
+        product.entryDate = new Date(lastEntry.updated_at)
+
+        // @ts-ignore
+        const timestamp = product.entryDate.valueOf();
+
+        const now = Date.now();
+        // @ts-ignore
+        product.daysInStock = Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
+      }
     }
 
     // 12. Retornar os produtos, a contagem total, e o estoque total da loja
