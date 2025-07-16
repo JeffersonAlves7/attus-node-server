@@ -58,7 +58,7 @@ export class GiroService {
           for (const entrada of entradas) {
             soma += entrada.quantity;
             ids.push(entrada.container_ID);
-            if (soma + entrada.quantity > saldoAtual) break;
+            if (soma > saldoAtual) break;
           }
         }
 
