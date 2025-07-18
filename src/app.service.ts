@@ -11,7 +11,7 @@ interface Pageable {
 
 @Injectable()
 export class AppService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async getProductsWithDaysAndGiro({
     page,
@@ -106,7 +106,9 @@ export class AppService {
     });
 
     // 5. Pegando os IDs dos produtos com base na ordenação
-    const ids = sortedStock.slice(limit * (page - 1), limit * page).map((item) => item.product_ID);
+    const ids = sortedStock
+      .slice(limit * (page - 1), limit * page)
+      .map((item) => item.product_ID);
 
     // 6. Obter os produtos com a ordenação pela soma do estoque
     const products = await this.prisma.products.findMany({
@@ -164,7 +166,12 @@ export class AppService {
       });
 
       let sum = 0;
-      let realEntries: Array<{ ID: number, container_ID: number, updated_at: Date, created_at: Date }> = []
+      let realEntries: Array<{
+        ID: number;
+        container_ID: number;
+        updated_at: Date;
+        created_at: Date;
+      }> = [];
 
       if (saldoAtualGalpao === 0 && galpaoEntries.length === 1) {
         sum = galpaoEntries[0].quantity;
@@ -178,7 +185,7 @@ export class AppService {
       }
 
       const containerNames = await this.prisma.loteContainer.findMany({
-        where: { ID: { in: realEntries.map(v => v.container_ID) } },
+        where: { ID: { in: realEntries.map((v) => v.container_ID) } },
         select: { name: true },
       });
 
@@ -192,21 +199,23 @@ export class AppService {
       product.alerta = Math.ceil((alerta / 100) * sum);
 
       // @ts-ignore
-      product.entryDate = null
+      product.entryDate = null;
 
       // @ts-ignore
-      product.daysInStock = 0
+      product.daysInStock = 0;
       if (realEntries.length > 0) {
-        const lastEntry = realEntries[0]
+        const lastEntry = realEntries[0];
         // @ts-ignore
-        product.entryDate = new Date(lastEntry.updated_at)
+        product.entryDate = new Date(lastEntry.updated_at);
 
         // @ts-ignore
         const timestamp = product.entryDate.valueOf();
 
         const now = Date.now();
         // @ts-ignore
-        product.daysInStock = Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
+        product.daysInStock = Math.floor(
+          (now - timestamp) / (1000 * 60 * 60 * 24),
+        );
       }
     }
 
@@ -217,8 +226,6 @@ export class AppService {
       totalQuantityInStock,
     };
   }
-
-
 
   async getProductsWithDaysGalpao({
     page,
@@ -311,7 +318,9 @@ export class AppService {
     });
 
     // 5. Pegando os IDs dos produtos com base na ordenação do estoque
-    const ids = sortedStock.slice(limit * (page - 1), limit * page).map((item) => item.product_ID);
+    const ids = sortedStock
+      .slice(limit * (page - 1), limit * page)
+      .map((item) => item.product_ID);
 
     // 6. Obter os produtos já filtrados e paginados, agora ordenados pela quantidade em estoque
     const products = await this.prisma.products.findMany({
@@ -345,7 +354,12 @@ export class AppService {
       });
 
       let sum = 0;
-      let realEntries: Array<{ ID: number, container_ID: number, updated_at: Date, created_at: Date }> = []
+      let realEntries: Array<{
+        ID: number;
+        container_ID: number;
+        updated_at: Date;
+        created_at: Date;
+      }> = [];
 
       if (saldoAtualGalpao === 0 && galpaoEntries.length === 1) {
         sum = galpaoEntries[0].quantity;
@@ -358,10 +372,9 @@ export class AppService {
         }
       }
       const containerNames = await this.prisma.loteContainer.findMany({
-        where: { ID: { in: realEntries.map(v => v.container_ID) } },
+        where: { ID: { in: realEntries.map((v) => v.container_ID) } },
         select: { name: true },
       });
-
 
       // @ts-ignore
       product.entry = {
@@ -373,21 +386,23 @@ export class AppService {
       product.alerta = Math.ceil(sum / alerta);
 
       // @ts-ignore
-      product.entryDate = null
+      product.entryDate = null;
 
       // @ts-ignore
-      product.daysInStock = 0
+      product.daysInStock = 0;
       if (realEntries.length > 0) {
-        const lastEntry = realEntries[0]
+        const lastEntry = realEntries[0];
         // @ts-ignore
-        product.entryDate = new Date(lastEntry.updated_at)
+        product.entryDate = new Date(lastEntry.updated_at);
 
         // @ts-ignore
         const timestamp = product.entryDate.valueOf();
 
         const now = Date.now();
         // @ts-ignore
-        product.daysInStock = Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
+        product.daysInStock = Math.floor(
+          (now - timestamp) / (1000 * 60 * 60 * 24),
+        );
       }
     }
 
@@ -398,7 +413,6 @@ export class AppService {
       totalQuantityInStock: totalQuantityInStock,
     };
   }
-
 
   async getProductsWithDaysLoja({
     page,
@@ -428,7 +442,9 @@ export class AppService {
           product_ID: true,
         },
       })
-      .then((transactions) => transactions.map((transaction) => transaction.product_ID));
+      .then((transactions) =>
+        transactions.map((transaction) => transaction.product_ID),
+      );
 
     // 2. Definir o filtro de busca para os produtos da loja
     const whereClause: any = {
@@ -509,7 +525,9 @@ export class AppService {
     });
 
     // 9. Pegar os produtos com base na ordenação do estoque
-    const ids = sortedStock.slice(limit * (page - 1), limit * page).map((item) => item.product_ID);
+    const ids = sortedStock
+      .slice(limit * (page - 1), limit * page)
+      .map((item) => item.product_ID);
 
     // 10. Obter os produtos filtrados e paginados, agora ordenados pela quantidade em estoque
     const products = await this.prisma.products.findMany({
@@ -547,7 +565,11 @@ export class AppService {
       });
 
       let sum = 0;
-      let realEntries: Array<{ ID: number, updated_at: Date, created_at: Date }> = []
+      let realEntries: Array<{
+        ID: number;
+        updated_at: Date;
+        created_at: Date;
+      }> = [];
 
       // Calcular a quantidade de entradas na loja
       if (saldoAtualLoja === 0 && lojaEntries.length === 1) {
@@ -570,21 +592,23 @@ export class AppService {
       product.alerta = Math.ceil(sum / alerta);
 
       // @ts-ignore
-      product.entryDate = null
+      product.entryDate = null;
 
       // @ts-ignore
-      product.daysInStock = 0
+      product.daysInStock = 0;
       if (realEntries.length > 0) {
-        const lastEntry = realEntries[0]
+        const lastEntry = realEntries[0];
         // @ts-ignore
-        product.entryDate = new Date(lastEntry.updated_at)
+        product.entryDate = new Date(lastEntry.updated_at);
 
         // @ts-ignore
         const timestamp = product.entryDate.valueOf();
 
         const now = Date.now();
         // @ts-ignore
-        product.daysInStock = Math.floor((now - timestamp) / (1000 * 60 * 60 * 24));
+        product.daysInStock = Math.floor(
+          (now - timestamp) / (1000 * 60 * 60 * 24),
+        );
       }
     }
 
@@ -597,55 +621,106 @@ export class AppService {
     };
   }
 
-
   async getProductsNotSelled({
     page,
     limit,
     importer,
     code,
+    startDate,
+    endDate,
     orderBy,
     orderType,
   }: {
     code?: string;
     importer?: string;
+    startDate: string;
+    endDate: string;
   } & Pageable) {
     if (!page) page = 1;
     if (!limit) limit = 20;
+    // http://localhost:9000/relatorios/semSaida?
+    // page=2&code=&importer=&startDate=%3Cbr+%2F%3E%0D%0A%3Cb%3EWarning%3C%2Fb%3E%3A++Undefined+variable+%24startDate+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E185%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A%3Cbr+%2F%3E%0D%0A%3Cb%3EDeprecated%3C%2Fb%3E%3A++htmlspecialchars%28%29%3A+Passing+null+to+parameter+%231+%28%24string%29+of+type+string+is+deprecated+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E185%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A&endDate=%3Cbr+%2F%3E%0D%0A%3Cb%3EWarning%3C%2Fb%3E%3A++Undefined+variable+%24endDate+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E186%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A%3Cbr+%2F%3E%0D%0A%3Cb%3EDeprecated%3C%2Fb%3E%3A++htmlspecialchars%28%29%3A+Passing+null+to+parameter+%231+%28%24string%29+of+type+string+is+deprecated+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E186%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A
 
-    const whereClause: any = {
-      is_active: true,
-      ...(importer && {
-        importer: importer,
-      }),
-      ...(code && {
-        code: {
-          contains: code,
+    const startOfDay = new Date(startDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(endDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    // 1. Primeiro, encontre todos os IDs de produtos que tiveram transações do tipo 2 (saída)
+    //    dentro do período especificado.
+    const transactionsInPeriod = await this.prisma.transaction.findMany({
+      where: {
+        type_ID: 2, // Tipo de transação de SAÍDA/VENDA
+        created_at: {
+          // Usando created_at para a data da transação
+          gte: startOfDay,
+          lte: endOfDay,
         },
-      }),
-    };
+      },
+      select: {
+        product_ID: true, // Seleciona apenas o ID do produto
+      },
+      distinct: ['product_ID'], // Garante IDs únicos
+    });
+
+    // Extrai os IDs únicos dos produtos que tiveram vendas no período
+    const productIdsWithSales = transactionsInPeriod.map((t) => t.product_ID);
 
     const orderByClause: any = {};
     if (orderBy && orderType) {
       const prismaOrderByField = orderBy === 'codigo' ? 'code' : orderBy;
       orderByClause[prismaOrderByField] = orderType.toLowerCase();
     } else {
-      orderByClause.ID = 'desc'; // Ordem padrão se não especificado
+      if (orderType?.toLowerCase() == 'desc') {
+        orderByClause.ID = 'desc';
+      } else if (orderType?.toLowerCase() == 'asc') {
+        orderByClause.ID = 'asc';
+      } else {
+        orderByClause.ID = 'desc';
+      }
     }
 
-    // 1. Buscar todos os produtos que correspondem aos filtros básicos.
-    // Incluir dados relacionados necessários para o cálculo de "não vendido":
-    // - quantity_in_stock para a quantidade atual no Galpão (stock_ID = 1)
-    // - productsInContainer para obter a ÚLTIMA entrada do produto
-    const allFilteredProducts = await this.prisma.products.findMany({
-      where: whereClause,
-      orderBy: orderByClause, // Aplicar ordenação aqui para que o `take: 1` seja consistente
-      include: {
+    // 2. Buscar todos os produtos que correspondem aos filtros e à condição "sem vendas no período"
+    const notSelledProducts = await this.prisma.products.findMany({
+      where: {
+        is_active: true,
+        ...(importer && {
+          importer: importer,
+        }),
+        ...(code && {
+          code: {
+            contains: code,
+          },
+        }),
+        // Condição principal: O ID do produto NÃO DEVE estar na lista de produtos que tiveram vendas
+        ID: {
+          notIn: productIdsWithSales,
+        },
+        // Produtos devem ter quantidade positiva em estoque no galpão
         quantity_in_stock: {
-          where: { stock_ID: 1 },
-          select: { quantity: true },
+          some: {
+            stock_ID: 1,
+          },
         },
         products_in_container: {
-          // Alterado para productsInContainer (camelCase) conforme a definição do Prisma
+          some: {
+            in_stock: true,
+          },
+        },
+      },
+      orderBy: orderByClause,
+      include: {
+        quantity_in_stock: {
+          where: {
+            OR: [{ stock_ID: 1 }, { stock_ID: 2 }],
+          },
+          select: { quantity: true, stock_ID: true },
+        },
+        products_in_container: {
+          where: {
+            in_stock: true,
+          },
           orderBy: { ID: 'desc' },
           take: 1,
           select: {
@@ -659,31 +734,11 @@ export class AppService {
       },
     });
 
-    const notSelledProducts = allFilteredProducts.filter((product) => {
-      const currentGalpaoQuantity = product.quantity_in_stock.reduce(
-        (sum, stock) => sum + stock.quantity,
-        0,
-      );
-
-      const lastProductInContainerEntry = product.products_in_container[0]; // Obter a última entrada
-
-      // Um produto é "não vendido" se ele tem uma última entrada E
-      // a quantidade da última entrada é positiva E
-      // sua quantidade atual no Galpão é IGUAL à quantidade da sua última entrada E
-      // a quantidade atual no Galpão é POSITIVA.
-      return (
-        lastProductInContainerEntry &&
-        lastProductInContainerEntry.quantity > 0 &&
-        currentGalpaoQuantity === lastProductInContainerEntry.quantity && // Usando '===' para igualdade estrita
-        currentGalpaoQuantity > 0
-      );
-    });
-
-    // 3. Calcular totalCount e pageCount a partir da lista filtrada
+    // 3. Calcular totalCount e pageCount a partir da lista já filtrada
     const totalCount = notSelledProducts.length;
     const pageCount = Math.ceil(totalCount / limit);
 
-    // 4. Aplicar paginação à lista filtrada e ordenada (agora definida!)
+    // 4. Aplicar paginação à lista
     const startIndex = limit * (page - 1);
     const paginatedProducts = notSelledProducts.slice(
       startIndex,
@@ -692,6 +747,7 @@ export class AppService {
 
     // Calcular o totalQuantityInStock somando as quantidades dos produtos paginados
     const totalQuantityInStock = paginatedProducts.reduce((sum, product) => {
+      // Soma as quantidades de todos os stocks incluídos
       const quantityInStock = product.quantity_in_stock.reduce(
         (subSum, stock) => subSum + stock.quantity,
         0,
@@ -699,14 +755,13 @@ export class AppService {
       return sum + quantityInStock;
     }, 0);
 
-    // NOVO: Calcular o total de itens (produtos) armazenados no galpão sem considerar os filtros
+    // Calcular o total de itens (produtos) armazenados no galpão sem considerar os filtros de 'not selled' ou período
     const totalProductsInGalpaoUnfiltered = await this.prisma.products.count({
       where: {
         is_active: true,
         quantity_in_stock: {
           some: {
             stock_ID: 1, // Apenas produtos no galpão
-            // quantity: { gt: 0 }, // Com quantidade positiva
           },
         },
       },
@@ -716,8 +771,8 @@ export class AppService {
       products: paginatedProducts,
       totalCount: totalCount,
       pageCount: pageCount,
-      totalQuantityInStock: totalQuantityInStock, // Agora calculado
-      totalProductsInGalpaoUnfiltered: totalProductsInGalpaoUnfiltered, // NOVO: Total de produtos no galpão sem filtro
+      totalQuantityInStock: totalQuantityInStock,
+      totalProductsInGalpaoUnfiltered: totalProductsInGalpaoUnfiltered,
     };
   }
 
@@ -748,7 +803,7 @@ export class AppService {
     const sales = await this.prisma.transaction.findMany({
       where: {
         product_ID: product.ID,
-        type_ID: 2,
+        type_ID: 2, // Tipo de transacao de SAIDA
         created_at: {
           gte: startOfDay,
           lte: endOfDay,
