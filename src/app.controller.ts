@@ -17,8 +17,8 @@ export class AppController {
 
     @Query('limit', {
       transform(value) {
-        if (!value) return 20;
-        return Math.min(Number(value), 100);
+        if (!value) return 100;
+        return Number(value) > 100 ? 100 : Number(value);
       },
     })
     limit: number,
@@ -100,8 +100,8 @@ export class AppController {
 
     @Query('limit', {
       transform(value) {
-        if (!value) return 20;
-        return Math.min(Number(value), 100);
+        if (!value) return 100;
+        return Number(value) > 100 ? 100 : Number(value);
       },
     })
     limit: number,
@@ -140,8 +140,8 @@ export class AppController {
 
     @Query('limit', {
       transform(value) {
-        if (!value) return 20;
-        return Math.min(Number(value), 100);
+        if (!value) return 100;
+        return Number(value) > 100 ? 100 : Number(value);
       },
     })
     limit: number,
