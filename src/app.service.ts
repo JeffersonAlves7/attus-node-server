@@ -638,8 +638,6 @@ export class AppService {
   } & Pageable) {
     if (!page) page = 1;
     if (!limit) limit = 20;
-    // http://localhost:9000/relatorios/semSaida?
-    // page=2&code=&importer=&startDate=%3Cbr+%2F%3E%0D%0A%3Cb%3EWarning%3C%2Fb%3E%3A++Undefined+variable+%24startDate+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E185%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A%3Cbr+%2F%3E%0D%0A%3Cb%3EDeprecated%3C%2Fb%3E%3A++htmlspecialchars%28%29%3A+Passing+null+to+parameter+%231+%28%24string%29+of+type+string+is+deprecated+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E185%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A&endDate=%3Cbr+%2F%3E%0D%0A%3Cb%3EWarning%3C%2Fb%3E%3A++Undefined+variable+%24endDate+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E186%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A%3Cbr+%2F%3E%0D%0A%3Cb%3EDeprecated%3C%2Fb%3E%3A++htmlspecialchars%28%29%3A+Passing+null+to+parameter+%231+%28%24string%29+of+type+string+is+deprecated+in+%3Cb%3E%2Fvar%2Fwww%2Fhtml%2FViews%2FRelatorios%2FsemSaida.php%3C%2Fb%3E+on+line+%3Cb%3E186%3C%2Fb%3E%3Cbr+%2F%3E%0D%0A
 
     const startOfDay = new Date(startDate);
     startOfDay.setUTCHours(0, 0, 0, 0);
@@ -706,6 +704,10 @@ export class AppService {
         products_in_container: {
           some: {
             in_stock: true,
+            updated_at: {
+              gte: startOfDay,
+              lte: endOfDay,
+            }
           },
         },
       },
