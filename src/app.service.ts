@@ -705,9 +705,8 @@ export class AppService {
           some: {
             in_stock: true,
             updated_at: {
-              gte: startOfDay,
               lte: endOfDay,
-            }
+            },
           },
         },
       },
